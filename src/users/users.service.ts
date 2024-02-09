@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import { User } from 'src/model/user.interface';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { CreateUserDto } from 'src/dto/CreateUserDto';
+import { UpdateUserDto } from 'src/dto/UpdateUserDto';
 
 @Injectable()
 export class UsersService {
-  private users: User[] = [
+  private users = [
     {
       id: 1,
       name: 'Piotr',
@@ -30,19 +31,30 @@ export class UsersService {
     },
   ];
 
-  findAll(role?: 'INTERN' | 'ENGINEER' | 'ADMIN'): User[] {
+  findAll(role?: 'INTERN' | 'ENGINEER' | 'ADMIN') {
     if (role) {
-      return this.users.filter((user) => user.role === role);
+      const roles = this.users.filter((user) => user.role === role);
+
+      if (!roles.length) {
+        throw new NotFoundException('User Role Not Found');
+      }
+      return roles;
     } else {
       return this.users;
     }
   }
 
-  findOne(id: string): User {
-    return this.users.find((user) => user.id === Number(id));
+  findOne(id: number) {
+    const user = this.users.find((user) => user.id === id);
+
+    if (!user) {
+      throw new NotFoundException('User Not Found');
+    }
+
+    return user;
   }
 
-  create(user: Omit<User, 'id'>): User {
+  create(user: CreateUserDto) {
     const usersByHighestId = [...this.users].sort((a, b) => b.id - a.id);
     const newUser = { ...user, id: usersByHighestId[0].id + 1 };
     this.users = [...this.users, newUser];
@@ -50,9 +62,9 @@ export class UsersService {
     return newUser;
   }
 
-  update(id: string, userUpdate: Partial<User>): void {
+  update(id: number, userUpdate: UpdateUserDto): void {
     const users = this.users.map((user) => {
-      if (user.id === Number(id)) {
+      if (user.id === id) {
         return { ...user, ...userUpdate };
       }
       return user;
@@ -60,8 +72,8 @@ export class UsersService {
     this.users = [...users];
   }
 
-  delete(id: string): void {
-    const newUsers = this.users.filter((user) => user.id !== Number(id));
+  delete(id: number): void {
+    const newUsers = this.users.filter((user) => user.id !== id);
     this.users = [...newUsers];
   }
 }
